@@ -85,7 +85,7 @@ org 100h
 	mov si, 10   ; Multiply each number we get by 10, as we push it up
 		    ; as a significant digit.
 	mov di, input
-getnum:
+.getnum:
 	cmp byte [di+bx], '0'  ; If less than '0', its not a numeral.
 	jl inputerror
 	cmp byte [di+bx], '9'  ; If more than '9', its not a numeral.'
@@ -99,7 +99,7 @@ getnum:
 	pop dx
 	inc bx
 	cmp bx, cx	     
-	jl getnum	      ; If more digits, go again.
+	jl .getnum	      ; If more digits, go again.
 	cmp ax, maxstars      ; Error if more than maxstars
 			    ; If there are too many stars, the buffer
 			    ; of star information will overwrite the stack.
@@ -124,22 +124,22 @@ begindemo:
 	mov ax,10     ; We start with 10 repetitions
 	mov bx,1      ; And we write speed of 1
 	mov cx,16     ; Sixteen speed gradients
-cloop1:
+.cloop1:
 	push cx
 	mov cx,ax    ; Store the number of times this speed is repeated.
-cloop2:
+@@:
 	mov [di],bx  ; And write to buffer
 	inc di	     ; Next buffer position
-	loop cloop2
+	loop @b
 	pop cx	     
 	inc ax	     ; Increase the number of repetitions by 1.
 	inc bx	     ; As well as the speed value
-	loop cloop1
+	loop .cloop1
 	    ;  There is now a table of 306 bytes.
 
 	mov cx, [numstars]
 	mov si, stars	; Set SI to start of stars buffer
-setstars:
+.setstars:
 	mov bx,319	; Random number between 1 and 319
 	call GetRandom
 	mov [ex],dx	; This is its x position.
@@ -167,7 +167,7 @@ setstars:
 	call setstar		; Initialise star
 	add si, sizeof.STAR	; Increment to next star
 
-	loop setstars	; Stars are initialised.
+	loop .setstars	; Stars are initialised.
 
 	mov ax,1200h	; Test for VGA card
 	mov bl,36h
@@ -182,32 +182,32 @@ setstars:
 	call InitColours
 
 startloop:
-loops1:
+.loops1:
 	call WAIT_RETRACE
 
 	mov si, stars
 	mov cx, [numstars]
-loops3: ; Update position of stars
+@@: ; Update position of stars
 	call updatestar
 	add si,sizeof.STAR
-	loop loops3
+	loop @b
 
 	mov cx, [numstars]
 	mov si, stars
-loops2: ; Erase stars one by one
+@@: ; Erase stars one by one
 	call erasestar
-s1:
+
 	add si, sizeof.STAR
-	loop loops2
+	loop @b
   
 	mov cx, [numstars]
 	mov si, stars
-loops4:
+@@:
 	call drawstar
-s2:
+
 	add si,sizeof.STAR
 
-	loop loops4
+	loop @b
 	sti ; Enable interrupts
 	mov ah,01h
 	int 16h
@@ -255,13 +255,13 @@ updatestar:
 	mov dx,[si+STAR.speed]
 	mov bx,[si+STAR.count]
 	cmp bx,dx ; If count is less than speed, we do NOT change position
-	jle dontdrawyet
+	jle .dontdrawyet
 	  ; Ready to draw!
 
 	mov [si+STAR.count],0 ; Reset the count to zero
 	mov ax,[si+STAR.y]
 	dec ax ; Move left one pixel
-	jnz n1 ; And if we have moved to offset zero?
+	jnz .n1 ; And if we have moved to offset zero?
 	mov bx,199 ; Get new offset
 	call GetRandom
 	xor ax,ax  ; Multiply by 320 to get absolute offset in buffer
@@ -272,12 +272,12 @@ updatestar:
 	mov bx, 319 ; An add x offset
 	call GetRandom
 	add al,dl
-n1:
+.n1:
 	mov word [si+STAR.x],rightpos ; Store the new pixel value
 	mov word [si+STAR.y],ax ; Store new offset.
 	inc [si+STAR.count] ; Increment count.
 	ret
-dontdrawyet:
+.dontdrawyet:
 	inc [si+STAR.count] ; Increment count.
 	ret
 
@@ -307,14 +307,14 @@ erasestar:
 
 WAIT_RETRACE:
 	mov dx,3dah
-al1:
+@@:
 	in al,dx
 	test al,8h
-	jnz al1
-al2:
+	jnz @b
+@@:
 	in al,dx
 	test al,8h
-	jz al2
+	jz @b
 	ret
 
  ;=============================================================================
@@ -385,17 +385,17 @@ InitColours:	       ; Set up the colours we will use.
 	xor ax,ax
 	mov cx,numcol
 	mov al,63
-setgrey:	     ;Set 16 shades of gray
+.setgrey:	     ;Set 16 shades of gray
 	out dx,al
 	out dx,al
 	out dx,al
 	sub al,4
-	loop setgrey
+	loop .setgrey
 
 	mov cx,numcol
 	mov al,63
 	xor bl,bl
-setyellow:	      ;Set 16 shades of yellow
+.setyellow:	      ;Set 16 shades of yellow
 	out dx,al
 	out dx,al
 	push ax
@@ -403,11 +403,11 @@ setyellow:	      ;Set 16 shades of yellow
 	out dx,al
 	pop ax
 	sub al,4
-	loop setyellow
+	loop .setyellow
 
 	mov cx,numcol
 	mov al,63
-setcyan:	      ;Set 16 shades of cyan
+.setcyan:	      ;Set 16 shades of cyan
 	push ax
 	mov al,bl
 	out dx,al
@@ -415,11 +415,11 @@ setcyan:	      ;Set 16 shades of cyan
 	pop ax
 	out dx,al
 	sub al,4
-	loop setcyan
+	loop .setcyan
 
 	mov cx,numcol
 	mov al,63
-setred: 	     ;Set 16 shades of red
+.setred: 	     ;Set 16 shades of red
 	out dx,al
 	push ax
 	mov al,bl
@@ -427,7 +427,7 @@ setred: 	     ;Set 16 shades of red
 	out dx,al
 	pop ax
 	sub al,4
-	loop setred
+	loop .setred
 	ret
 
 ;=============================================================================
